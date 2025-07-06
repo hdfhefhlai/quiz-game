@@ -1,1 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Quiz App</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #fefae0;
+      padding: 2rem;
+      color: #333;
+    }
+    .container {
+      max-width: 700px;
+      margin: auto;
+      text-align: center;
+    }
+    input, select, button {
+      font-size: 1rem;
+      padding: 0.5rem;
+      margin: 0.5rem;
+    }
+    .hidden { display: none; }
+    #options button {
+      display: block;
+      width: 100%;
+      margin: 0.5rem auto;
+    }
+    #feedback {
+      font-weight: bold;
+      margin: 1rem;
+    }
+    #question-image {
+      max-width: 100%;
+      max-height: 200px;
+      margin: 1rem auto;
+      border-radius: 8px;
+    }
+    table {
+      border-collapse: collapse;
+      margin: 1rem auto;
+      width: 100%;
+    }
+    th, td {
+      padding: 0.5rem;
+      border: 1px solid #aaa;
+    }
+    th {
+      background-color: #e0dcdc;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧠 Basic Knowledge Quiz</h1>
 
+    <button onclick="toggleAdmin()">🔐 View All Player Results</button>
+    <div id="admin-panel" class="hidden">
+      <input type="password" id="admin-pass" placeholder="Enter Password" />
+      <button onclick="viewResults()">Check Results</button>
+      <div id="results-output"></div>
+    </div>
+
+    <div id="start-screen">
+      <input id="player-name" type="text" placeholder="Enter Your Name" />
+      <select id="grade-select">
+        <option value="">--Select Grade--</option>
+        <option value="9">Grade 9</option>
+        <option value="10">Grade 10</option>
+             </select>
+      <br />
+      <button onclick="goToQuiz()">Next ➡️</button>
+    </div>
+
+    <div id="quiz-container" class="hidden">
+      <h2 id="question"></h2>
+      <img id="question-image" src="" alt="Question Image" class="hidden" />
+      <div id="options"></div>
+      <p id="feedback"></p>
+      <button onclick="nextQuestion()">Next</button>
+    </div>
+
+    <div id="result-container" class="hidden">
+      <h2>🎉 Quiz Completed!</h2>
+      <p id="result-text"></p>
+      <button onclick="location.reload()">Restart</button>
+    </div>
+  </div>
+
+  <script>
+    const questions = {
+      9: [
+        {
+          q: "Which organelle is known as the powerhouse of the cell?",
+          img: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Mitochondrion_structure.svg/512px-Mitochondrion_structure.svg.png",
+          options: ["Nucleus", "Mitochondria", "Ribosome", "Chloroplast"],
+          answer: 1
+        },
+        {
+          q: "What is the capital of Australia?",
+          img: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bc/Parliament_House_Canberra.jpg/640px-Parliament_House_Canberra.jpg",
+          options: ["Sydney", "Canberra", "Melbourne", "Perth"],
+          answer: 1
+        }
+      ],
+      10: [
+        {
+          q: "Which planet is known as the Red Planet?",
+          img: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/OSIRIS_Mars_true_color.jpg/640px-OSIRIS_Mars_true_color.jpg",
+          options: ["Venus", "Mars", "Jupiter", "Mercury"],
+          answer: 1
+        },
+        {
+          q: "Who composed the National Anthem of India?",
+          img: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fc/Rabindranath_Tagore.jpg/480px-Rabindranath_Tagore.jpg",
+          options: ["Rabindranath Tagore", "Bankim Chandra", "Aurobindo", "Lata Mangeshkar"],
+          answer: 0
+        }
+      ]
+    };
+
+    let currentGrade = null;
+    let currentQIndex = 0;
+    let score = 0;
+    let playerName = "";
+
+    function goToQuiz() {
+      playerName = document.getElementById("player-name").value.trim();
+      currentGrade = document.getElementById("grade-select").value;
+      if (!playerName || !currentGrade) {
+        alert("Please enter your name and grade to continue.");
+        return;
+      }
+      document.getElementById("start-screen").classList.add("hidden");
+      document.getElementById("quiz-container").classList.remove("hidden");
+      showQuestion();
+    }
+
+    function showQuestion() {
+      const gradeQuestions = questions[currentGrade];
+      const current = gradeQuestions[currentQIndex];
+      document.getElementById("question").textContent = `Q${currentQIndex + 1}: ${current.q}`;
+      const imgEl = document.getElementById("question-image");
+      if (current.img) {
+        imgEl.src = current.img;
+        imgEl.classList.remove("hidden");
+      } else {
+        imgEl.classList.add("hidden");
+      }
+      const optionsDiv = document.getElementById("options");
+      optionsDiv.innerHTML = "";
+      document.getElementById("feedback").textContent = "";
+      current.options.forEach((opt, i) => {
+        const btn = document.createElement("button");
+        btn.textContent = opt;
+        btn.onclick = () => {
+          const isCorrect = i === current.answer;
+          if (isCorrect) score++;
+          document.getElementById("feedback").textContent = isCorrect ? "✅ Correct!" : `❌ Incorrect.`;
+        };
+        optionsDiv.appendChild(btn);
+      });
+    }
+
+    function nextQuestion() {
+      const gradeQuestions = questions[currentGrade];
+      currentQIndex++;
+      if (currentQIndex >= gradeQuestions.length) {
+        const level = score <= 4 ? 1 : score <= 7 ? 2 : 3;
+        const results = JSON.parse(localStorage.getItem("quiz-results") || "[]");
+        results.push({ name: playerName, score, level });
+        localStorage.setItem("quiz-results", JSON.stringify(results));
+        document.getElementById("quiz-container").classList.add("hidden");
+        document.getElementById("result-text").textContent =
+          `${playerName}, you scored ${score}/${gradeQuestions.length} [Level ${level}]`;
+        document.getElementById("result-container").classList.remove("hidden");
+      } else {
+        showQuestion();
+      }
+    }
+
+    function toggleAdmin() {
+      document.getElementById("admin-panel").classList.toggle("hidden");
+      document.getElementById("results-output").innerHTML = "";
+    }
+
+    function viewResults() {
+      const pass = document.getElementById("admin-pass").value;
+      if (pass !== "sfvheriuheirhu") {
+        alert("Incorrect password!");
+        return;
+      }
+      const results = JSON.parse(localStorage.getItem("quiz-results") || "[]");
+      if (results.length === 0) {
+        document.getElementById("results-output").innerHTML = "<p>No results found.</p>";
+        return;
+      }
+
+      let html = "<table><tr><th>Name</th><th>Score</th><th>Level</th></tr>";
+      results.forEach(r => {
+        html += `<tr><td>${r.name}</td><td>${r.score}</td><td>${r.level}</td></tr>`;
+      });
+      html += "</table>";
+      document.getElementById("results-output").innerHTML = html;
+    }
+  </script>
+</body>
+</html>
